@@ -412,15 +412,10 @@ const _isPublicAddress = (address: string): boolean => {
 }
 
 const sdpHasUsableCandidate = (sdp: string = ''): boolean => {
-  const regex = /^a=candidate:\S+ \d+ \S+ \d+ (\S+) \d+ typ (\S+)/gm
-  let match: RegExpExecArray | null
-  while ((match = regex.exec(sdp)) !== null) {
-    const [, address, type] = match
-    if (type !== 'host' || _isPublicAddress(address)) {
-      return true
-    }
-  }
-  return false
+  return sdp.split(/\r?\n/).some((line) => {
+    const match = /^a=candidate:\S+ \d+ \S+ \d+ (\S+) \d+ typ (\S+)/.exec(line)
+    return Boolean(match) && (match[2] !== 'host' || _isPublicAddress(match[1]))
+  })
 }
 
 export {
