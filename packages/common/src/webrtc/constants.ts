@@ -28,6 +28,10 @@ export enum VertoMethod {
   MediaParams = 'verto.mediaParams',
 }
 
+export const ICE_GATHERING_TIMEOUT = 1000
+export const ICE_GATHERING_RETRY_INTERVAL = 250
+export const ICE_GATHERING_MAX_WAIT = 5000
+
 export const NOTIFICATION_TYPE = {
   generic: 'event',
   [VertoMethod.Display]: 'participantData',

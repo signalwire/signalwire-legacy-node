@@ -368,4 +368,48 @@ describe('BaseCall', () => {
       expect(restartIceSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('ICE gathering timeout', () => {
+    const mdnsOnly = 'a=candidate:1 1 udp 2113937151 0aec7d55.local 46018 typ host generation 0\r\n'
+    const withSrflx = mdnsOnly + 'a=candidate:2 1 udp 1677729535 34.1.2.3 46018 typ srflx raddr 0.0.0.0 rport 0\r\n'
+    let mockPeerInstance
+    let onIceSdpSpy
+
+    beforeEach(() => {
+      jest.useFakeTimers()
+      mockPeerInstance = {
+        localDescription: { type: 'answer', sdp: mdnsOnly },
+        onicecandidate: null,
+        addEventListener: jest.fn(),
+      }
+      call.peer = { instance: mockPeerInstance, resetNegotiating: jest.fn() }
+      onIceSdpSpy = jest.spyOn(call as any, '_onIceSdp').mockImplementation(() => {})
+      call['_registerPeerEvents']()
+      mockPeerInstance.onicecandidate({ candidate: { type: 'host' } })
+    })
+
+    afterEach(() => {
+      onIceSdpSpy.mockRestore()
+      jest.useRealTimers()
+    })
+
+    it('should keep waiting while only mDNS candidates are gathered', () => {
+      jest.advanceTimersByTime(1000)
+      expect(onIceSdpSpy).not.toHaveBeenCalled()
+    })
+
+    it('should send the SDP once a usable candidate is gathered', () => {
+      jest.advanceTimersByTime(1000)
+      mockPeerInstance.localDescription = { type: 'answer', sdp: withSrflx }
+      jest.advanceTimersByTime(250)
+      expect(onIceSdpSpy).toHaveBeenCalledTimes(1)
+      expect(onIceSdpSpy.mock.calls[0][0].sdp).toBe(withSrflx)
+    })
+
+    it('should send whatever was gathered after the max wait', () => {
+      jest.advanceTimersByTime(5000)
+      expect(onIceSdpSpy).toHaveBeenCalledTimes(1)
+      expect(onIceSdpSpy.mock.calls[0][0].sdp).toBe(mdnsOnly)
+    })
+  })
 })

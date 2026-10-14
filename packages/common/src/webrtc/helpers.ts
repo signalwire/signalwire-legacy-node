@@ -392,6 +392,10 @@ const sdpHasVideo = (sdp: string = ''): boolean => {
   return /m=video/.test(sdp)
 }
 
+const sdpHasUsableCandidate = (sdp: string = ''): boolean => {
+  return /^a=candidate:\S+ \d+ \S+ \d+ (?!\S+\.local )\S+ /m.test(sdp)
+}
+
 export {
   getUserMedia,
   getDevices,
@@ -414,4 +418,5 @@ export {
   filterIceServers,
   sdpHasAudio,
   sdpHasVideo,
+  sdpHasUsableCandidate,
 }

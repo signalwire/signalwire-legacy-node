@@ -14,6 +14,9 @@ import {
   VertoMethod,
   NOTIFICATION_TYPE,
   Direction,
+  ICE_GATHERING_TIMEOUT,
+  ICE_GATHERING_RETRY_INTERVAL,
+  ICE_GATHERING_MAX_WAIT,
 } from './constants'
 import { trigger, register, deRegister } from '../services/Handler'
 import {
@@ -26,6 +29,7 @@ import {
   enableVideoTracks,
   disableVideoTracks,
   toggleVideoTracks,
+  sdpHasUsableCandidate,
 } from './helpers'
 import {
   objEmpty,
@@ -69,6 +73,7 @@ export default abstract class BaseCall implements IWebRTCCall {
   private _lastSerno: number = 0
   private _targetNodeId: string = null
   private _iceTimeout = null
+  private _iceGatheringStartedAt: number = 0
   private _iceDone: boolean = false
   private _iceRestartAttempts: number = 0
 
@@ -998,6 +1003,23 @@ export default abstract class BaseCall implements IWebRTCCall {
       })
   }
 
+  private _onIceTimeout(instance: RTCPeerConnection) {
+    const { localDescription } = instance
+    const waited = Date.now() - this._iceGatheringStartedAt
+    if (
+      !sdpHasUsableCandidate(localDescription.sdp) &&
+      waited < ICE_GATHERING_MAX_WAIT
+    ) {
+      logger.debug('No usable ICE candidate yet, waiting')
+      this._iceTimeout = setTimeout(
+        () => this._onIceTimeout(instance),
+        ICE_GATHERING_RETRY_INTERVAL,
+      )
+      return
+    }
+    this._onIceSdp(localDescription)
+  }
+
   private _registerPeerEvents() {
     const { instance } = this.peer
     this._iceDone = false
@@ -1007,9 +1029,10 @@ export default abstract class BaseCall implements IWebRTCCall {
       }
       if (this._iceTimeout === null) {
         logger.debug('Setting _iceTimeout to 1 second')
+        this._iceGatheringStartedAt = Date.now()
         this._iceTimeout = setTimeout(
-          () => this._onIceSdp(instance.localDescription),
-          1000,
+          () => this._onIceTimeout(instance),
+          ICE_GATHERING_TIMEOUT,
         )
       }
       if (event.candidate) {
