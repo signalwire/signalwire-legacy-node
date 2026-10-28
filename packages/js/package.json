@@ -42,13 +42,12 @@
   "dependencies": {
     "jest-environment-jsdom": "^29.7.0",
     "loglevel": "^1.6.8",
-    "uuid": "^7.0.3"
+    "uuid": "^11.1.1"
   },
   "devDependencies": {
     "@babel/plugin-transform-runtime": "^7.9.0",
     "@babel/preset-env": "^7.24.4",
     "@types/jest": "^29.5.8",
-    "@types/uuid": "^9.0.7",
     "@types/webrtc": "^0.0.40",
     "babel-core": "^4.7.16",
     "babel-loader": "^9.1.3",
